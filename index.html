@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>碎片时间变现计算器 Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gray-50 font-sans">
+    <nav class="bg-teal-700 text-white p-4 shadow-lg sticky top-0 z-50">
+        <div class="max-w-6xl mx-auto flex items-center justify-between flex-wrap gap-2">
+            <h1 class="text-xl font-bold"><i class="fa fa-clock-o mr-2"></i>碎片时间变现计算器 Pro</h1>
+            <div class="flex flex-wrap gap-2 text-sm">
+                <button onclick="showTab('calculator')" class="tab-btn px-3 py-1 rounded bg-teal-500"><i class="fa fa-calculator"></i> 计算器</button>
+                <button onclick="showTab('compare')" class="tab-btn px-3 py-1 rounded hover:bg-teal-500"><i class="fa fa-bar-chart"></i> 收益对比</button>
+                <button onclick="showTab('learning')" class="tab-btn px-3 py-1 rounded hover:bg-teal-500"><i class="fa fa-book"></i> 学习路径</button>
+                <button onclick="showTab('tracker')" class="tab-btn px-3 py-1 rounded hover:bg-teal-500"><i class="fa fa-line-chart"></i> 收益追踪</button>
+                <button onclick="showTab('goal')" class="tab-btn px-3 py-1 rounded hover:bg-teal-500"><i class="fa fa-bullseye"></i> 目标设定</button>
+                <button onclick="showTab('history')" class="tab-btn px-3 py-1 rounded hover:bg-teal-500"><i class="fa fa-history"></i> 历史</button>
+                <button onclick="showTab('cases')" class="tab-btn px-3 py-1 rounded hover:bg-teal-500"><i class="fa fa-users"></i> 成功案例</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-6xl mx-auto p-4">
+        <!-- ====== 计算器 ====== -->
+        <div id="tab-calculator" class="tab-content">
+            <!-- 统计卡片 -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div class="bg-white rounded-xl shadow p-5 text-center">
+                    <div class="text-gray-500 text-sm">日均碎片时间</div>
+                    <div id="dailyMinutes" class="text-2xl font-bold text-teal-600">60分钟</div>
+                </div>
+                <div class="bg-white rounded-xl shadow p-5 text-center">
+                    <div class="text-gray-500 text-sm">月预估收益</div>
+                    <div id="monthlyIncome" class="text-2xl font-bold text-emerald-600">¥1,800</div>
+                </div>
+                <div class="bg-white rounded-xl shadow p-5 text-center">
+                    <div class="text-gray-500 text-sm">年预估收益</div>
+                    <div id="yearlyIncome" class="text-2xl font-bold text-indigo-600">¥21,600</div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- 参数设置 -->
+                <div class="bg-white rounded-xl shadow p-6">
+                    <h3 class="font-bold mb-4"><i class="fa fa-cog mr-2 text-teal-600"></i>参数设置</h3>
+                    <div class="space-y-4">
+                        <div><label class="block text-sm text-gray-600 mb-1">每天碎片时间 (分钟)</label>
+                            <input type="range" id="minutes" min="5" max="360" value="60" oninput="updateMinutes()" class="w-full">
+                            <div class="text-right text-sm text-gray-500" id="minutesVal">60分钟</div>
+                        </div>
+                        <div><label class="block text-sm text-gray-600 mb-1">每月工作天数</label><input type="number" id="workDays" class="w-full border rounded p-2" value="25" onchange="calculate()"></div>
+                        <div><label class="block text-sm text-gray-600 mb-1">技能熟练度</label>
+                            <div class="flex gap-2">
+                                <button onclick="setSkill(1)" class="skill-btn px-4 py-2 rounded text-sm bg-green-500 text-white">新手</button>
+                                <button onclick="setSkill(2)" class="skill-btn px-4 py-2 rounded text-sm bg-gray-200">进阶</button>
+                                <button onclick="setSkill(3)" class="skill-btn px-4 py-2 rounded text-sm bg-gray-200">熟练</button>
+                                <button onclick="setSkill(4)" class="skill-btn px-4 py-2 rounded text-sm bg-gray-200">专家</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 技能选择 + 时薪参考 -->
+                <div class="bg-white rounded-xl shadow p-6">
+                    <h3 class="font-bold mb-4"><i class="fa fa-tasks mr-2 text-teal-600"></i>选择变现技能</h3>
+                    <div class="mb-3">
+                        <p class="text-xs text-gray-500">每个技能显示 低/中/高 三档时薪参考</p>
+                    </div>
+                    <div class="grid grid-cols-3 sm:grid-cols-4 gap-2" id="methodGrid"></div>
+                </div>
+            </div>
+
+            <!-- 时间投入vs收益曲线 -->
+            <div class="bg-white rounded-xl shadow p-6 mt-6">
+                <h3 class="font-bold mb-4"><i class="fa fa-line-chart text-teal-600"></i>时间投入 vs 收益曲线</h3>
+                <canvas id="timeChart" height="200"></canvas>
+            </div>
+
+            <!-- 技能组合推荐 -->
+            <div id="comboPanel" class="bg-white rounded-xl shadow p-6 mt-6">
+                <h3 class="font-bold mb-4"><i class="fa fa-puzzle-piece text-teal-600"></i>技能组合推荐</h3>
+                <div id="comboResult" class="text-sm text-gray-600"></div>
+            </div>
+        </div>
+
+        <!-- ====== 收益对比 ====== -->
+        <div id="tab-compare" class="tab-content hidden">
+            <div class="bg-white rounded-xl shadow p-6">
+                <h3 class="font-bold mb-4"><i class="fa fa-bar-chart mr-2 text-teal-600"></i>各技能收益对比</h3>
+                <canvas id="compareChart" height="250" class="mb-4"></canvas>
+                <div id="compareList" class="space-y-2"></div>
+            </div>
+        </div>
+
+        <!-- ====== 学习路径 ====== -->
+        <div id="tab-learning" class="tab-content hidden">
+            <div class="bg-white rounded-xl shadow p-6 mb-6">
+                <h3 class="font-bold mb-4"><i class="fa fa-book mr-2 text-teal-600"></i>技能学习路径规划</h3>
+                <p class="text-sm text-gray-500 mb-4">选择技能查看从新手到专家的学习路径、推荐资源和时间预估</p>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium mb-1">选择技能</label>
+                    <select id="learningSkillSelect" onchange="showLearningPath()" class="w-full border rounded px-3 py-2">
+                        <option value="">-- 请选择技能 --</option>
+                        ${ALL_SKILLS.map(s => `<option value="${s.id}">${s.name}（¥${s.rates.low}-${s.rates.high}/h）</option>`).join('')}
+                    </select>
+                </div>
+            </div>
+            <div id="learningPathResult" class="bg-white rounded-xl shadow p-6">
+                <div class="text-center text-gray-400 py-8">选择技能后显示学习路径</div>
+            </div>
+        </div>
+
+        <!-- ====== 收益追踪 ====== -->
+        <div id="tab-tracker" class="tab-content hidden">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                <div class="bg-white rounded-xl shadow p-6">
+                    <h3 class="font-bold mb-4"><i class="fa fa-plus-circle mr-2 text-teal-600"></i>记录实际收入</h3>
+                    <div class="space-y-3">
+                        <div><label class="block text-sm mb-1">日期</label><input type="date" id="trackerDate" class="w-full border rounded p-2" value="${new Date().toISOString().slice(0,10)}"></div>
+                        <div><label class="block text-sm mb-1">技能/项目</label><select id="trackerSkill" class="w-full border rounded p-2">${ALL_SKILLS.map(s => `<option value="${s.id}">${s.name}</option>`).join('')}</select></div>
+                        <div><label class="block text-sm mb-1">实际收入 (¥)</label><input type="number" id="trackerActualIncome" class="w-full border rounded p-2" placeholder="本次实际收入"></div>
+                        <div><label class="block text-sm mb-1">投入时间 (分钟)</label><input type="number" id="trackerTime" class="w-full border rounded p-2" placeholder="如：60"></div>
+                        <button onclick="addTrackerRecord()" class="bg-teal-600 text-white px-4 py-2 rounded hover:bg-teal-700"><i class="fa fa-save"></i> 保存记录</button>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl shadow p-6">
+                    <h3 class="font-bold mb-4"><i class="fa fa-bar-chart mr-2 text-teal-600"></i> 实际 vs 预估对比</h3>
+                    <div id="trackerSummary" class="space-y-3"></div>
+                    <canvas id="trackerChart" height="200" class="mt-4"></canvas>
+                </div>
+            </div>
+            <div class="bg-white rounded-xl shadow p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-bold"><i class="fa fa-list mr-2 text-teal-600"></i> 收益记录历史</h3>
+                    <button onclick="clearTrackerRecords()" class="bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600"><i class="fa fa-trash mr-1"></i>清空</button>
+                </div>
+                <div id="trackerList" class="space-y-2 max-h-96 overflow-y-auto"></div>
+            </div>
+        </div>
+
+        <!-- ====== 目标设定 ====== -->
+        <div id="tab-goal" class="tab-content hidden">
+            <div class="max-w-2xl mx-auto">
+                <div class="bg-white rounded-xl shadow p-6">
+                    <h3 class="font-bold mb-4"><i class="fa fa-bullseye mr-2 text-teal-600"></i>月度收入目标设定</h3>
+                    <div class="space-y-4">
+                        <div><label class="block text-sm text-gray-600 mb-1">月目标收入 (¥)</label><input type="number" id="goalAmount" class="w-full border rounded p-2 text-lg" placeholder="10000"></div>
+                        <button onclick="calculateGoal()" class="w-full bg-teal-600 text-white py-3 rounded-lg hover:bg-teal-700">计算所需时间</button>
+                        <div id="goalResult" class="space-y-3"></div>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl shadow p-6 mt-6">
+                    <h3 class="font-bold mb-4"><i class="fa fa-flask mr-2 text-teal-600"></i>推荐组合策略</h3>
+                    <div id="strategyTips" class="space-y-3"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ====== 历史 ====== -->
+        <div id="tab-history" class="tab-content hidden">
+            <div class="bg-white rounded-xl shadow p-6 mb-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-bold"><i class="fa fa-history mr-2 text-teal-600"></i>计算历史</h3>
+                    <button onclick="clearHistory()" class="bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600"><i class="fa fa-trash mr-1"></i>清空</button>
+                </div>
+                <div id="historyList" class="space-y-2"></div>
+            </div>
+            <!-- 收益趋势图 -->
+            <div class="bg-white rounded-xl shadow p-6">
+                <h3 class="font-bold mb-4"><i class="fa fa-line-chart text-teal-600"></i>收益趋势（最近5次）</h3>
+                <canvas id="incomeTrendChart" height="200"></canvas>
+            </div>
+        </div>
+
+        <!-- ====== 成功案例 ====== -->
+        <div id="tab-cases" class="tab-content hidden">
+            <div class="bg-white rounded-xl shadow p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-bold"><i class="fa fa-users mr-2 text-teal-600"></i>20+ 真实成功案例</h3>
+                    <button onclick="randomCases()" class="bg-teal-600 text-white px-4 py-2 rounded text-sm hover:bg-teal-700"><i class="fa fa-random"></i> 随机展示3个</button>
+                </div>
+                <div id="caseGrid" class="grid grid-cols-1 md:grid-cols-3 gap-4"></div>
+                <div class="mt-6">
+                    <h4 class="font-bold mb-3"><i class="fa fa-list"></i> 全部案例</h4>
+                    <div id="caseFullList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 text-sm"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============== 22个技能 ==============
+        const ALL_SKILLS = [
+            { id: 'article', name: '写短文', icon: 'fa-file-text', rates: { low: 30, mid: 50, high: 100 }, efficiency: 0.8, diff: '低', platforms: '公众号/知乎/头条', desc: '投稿/自媒体/公众号代运营' },
+            { id: 'video', name: '录短视频', icon: 'fa-video-camera', rates: { low: 40, mid: 80, high: 150 }, efficiency: 0.6, diff: '中', platforms: '抖音/快手/视频号', desc: '内容创作/带货/接广告' },
+            { id: 'consult', name: '在线咨询', icon: 'fa-comments', rates: { low: 80, mid: 150, high: 300 }, efficiency: 0.9, diff: '高', platforms: '知乎/在行/知识星球', desc: '专业领域付费咨询' },
+            { id: 'code', name: '接单编程', icon: 'fa-code', rates: { low: 100, mid: 200, high: 400 }, efficiency: 0.7, diff: '高', platforms: '猪八戒/Upwork/程序员客栈', desc: '外包项目/开源打赏' },
+            { id: 'translate', name: '翻译', icon: 'fa-language', rates: { low: 30, mid: 60, high: 120 }, efficiency: 0.85, diff: '中', platforms: 'Proz/Gengo/有道', desc: '文档/字幕/本地化翻译' },
+            { id: 'design', name: '平面设计', icon: 'fa-paint-brush', rates: { low: 50, mid: 100, high: 200 }, efficiency: 0.65, diff: '中', platforms: '猪八戒/Canva/站酷', desc: 'Logo/海报/UI设计' },
+            { id: 'voice', name: '配音/朗读', icon: 'fa-microphone', rates: { low: 35, mid: 70, high: 150 }, efficiency: 0.75, diff: '中', platforms: '喜马拉雅/配音秀', desc: '有声书/广告/课程配音' },
+            { id: 'tutor', name: '在线辅导', icon: 'fa-graduation-cap', rates: { low: 60, mid: 120, high: 250 }, efficiency: 0.95, diff: '高', platforms: '猿辅导/学而思/腾讯课堂', desc: '一对一/小班教学' },
+            { id: 'copywrite', name: '文案写作', icon: 'fa-pencil', rates: { low: 40, mid: 80, high: 150 }, efficiency: 0.85, diff: '中', platforms: '稿稿/中国写手之家', desc: '广告文案/品牌故事/软文' },
+            { id: 'data_entry', name: '数据录入', icon: 'fa-database', rates: { low: 15, mid: 30, high: 50 }, efficiency: 0.95, diff: '低', platforms: '阿里众包/京东微工', desc: '数据标注/录入/整理' },
+            { id: 'transcribe', name: '语音转文字', icon: 'fa-headphones', rates: { low: 20, mid: 40, high: 70 }, efficiency: 0.9, diff: '低', platforms: '讯飞听见/腾讯云', desc: '音频转写/字幕制作' },
+            { id: 'photo', name: '摄影/图库', icon: 'fa-camera', rates: { low: 40, mid: 90, high: 200 }, efficiency: 0.5, diff: '中', platforms: '图虫/视觉中国/Shutterstock', desc: '图片素材/摄影约拍' },
+            { id: 'excel', name: 'Excel处理', icon: 'fa-table', rates: { low: 25, mid: 50, high: 100 }, efficiency: 0.9, diff: '低', platforms: '猪八戒/淘宝服务', desc: '报表/数据分析/自动化' },
+            { id: 'social_mgmt', name: '社媒代运营', icon: 'fa-share-alt', rates: { low: 30, mid: 60, high: 120 }, efficiency: 0.7, diff: '中', platforms: '小红书/抖音服务商', desc: '账号代运营/内容规划' },
+            { id: 'notion', name: 'Notion模板', icon: 'fa-files-o', rates: { low: 30, mid: 70, high: 150 }, efficiency: 0.8, diff: '低', platforms: 'Gumroad/NotionMarket', desc: '模板制作/数字产品' },
+            { id: 'handcraft', name: '手工/手作', icon: 'fa-scissors', rates: { low: 20, mid: 45, high: 80 }, efficiency: 0.7, diff: '低', platforms: '闲鱼/拼多多/微店', desc: '手工制品/定制礼品' },
+            { id: 'voice_over', name: '直播/语音直播', icon: 'fa-rss', rates: { low: 50, mid: 100, high: 200 }, efficiency: 0.5, diff: '中', platforms: '抖音/快手/B站', desc: '聊天/唱歌/游戏直播' },
+            { id: 'qa', name: '知识问答', icon: 'fa-question-circle', rates: { low: 15, mid: 35, high: 60 }, efficiency: 0.9, diff: '低', platforms: '百度知道/悟空问答', desc: '答题/知识付费' },
+            { id: 'test', name: '产品测评', icon: 'fa-flask', rates: { low: 25, mid: 55, high: 100 }, efficiency: 0.75, diff: '低', platforms: '知乎/什么值得买', desc: '产品体验/评测报告' },
+            { id: 'music', name: '音乐制作', icon: 'fa-music', rates: { low: 60, mid: 120, high: 250 }, efficiency: 0.5, diff: '高', platforms: '网易云音乐/5sing', desc: '编曲/配乐/音效制作' },
+            { id: 'course', name: '课程制作', icon: 'fa-play-circle', rates: { low: 80, mid: 150, high: 300 }, efficiency: 0.6, diff: '高', platforms: '网易云课堂/腾讯课堂', desc: '知识付费/在线课程' },
+            { id: 'ppt', name: 'PPT设计', icon: 'fa-file-powerpoint-o', rates: { low: 40, mid: 80, high: 150 }, efficiency: 0.75, diff: '中', platforms: '猪八戒/淘宝/闲鱼', desc: 'PPT定制/模板制作' }
+        ];
+
+        // ============== 20个成功案例 ==============
+        const SUCCESS_CASES = [
+            { name: '小王', skill: '写短文', platform: '公众号', income: 8000, hoursPerWeek: 10, timeToFirstIncome: '2周', story: '白天是行政文员，晚上利用2小时写职场干货文。第3个月接到第一个广告，现在稳定月入8000+。' },
+            { name: 'Lisa', skill: '平面设计', platform: '小红书', income: 12000, hoursPerWeek: 15, timeToFirstIncome: '3周', story: '自学Canva后在小红书发设计教程，引流到私域接单。现在主要做品牌VI设计，客单价3000+。' },
+            { name: '阿杰', skill: '接单编程', platform: '程序员客栈', income: 15000, hoursPerWeek: 20, timeToFirstIncome: '1周', story: '后端程序员，利用晚上和周末接外包项目。主要做小程序和API开发，单项目1-3万。' },
+            { name: '小美', skill: '配音/朗读', platform: '喜马拉雅', income: 5000, hoursPerWeek: 8, timeToFirstIncome: '1个月', story: '声音条件好，在喜马拉雅录有声小说。每天下班录1小时，第2个月开始有稳定收入。' },
+            { name: '老张', skill: '在线咨询', platform: '在行', income: 20000, hoursPerWeek: 10, timeToFirstIncome: '2周', story: '20年HR经验，在行提供职业规划咨询。每周接5-8单，单价500-1000元。' },
+            { name: '小林', skill: '翻译', platform: 'Proz', income: 6000, hoursPerWeek: 12, timeToFirstIncome: '1周', story: '英语专业毕业，利用碎片时间接翻译单。主要做技术文档和字幕翻译，每千字200-400元。' },
+            { name: '大刘', skill: '录短视频', platform: '抖音', income: 30000, hoursPerWeek: 25, timeToFirstIncome: '2个月', story: '辞职做美食探店号，每天花3-4小时拍摄剪辑。20万粉后月收入稳定3万+。' },
+            { name: '陈姐', skill: 'Notion模板', platform: 'Gumroad', income: 4000, hoursPerWeek: 5, timeToFirstIncome: '3天', story: '做了5套Notion模板挂在Gumroad上卖，被动收入。周末花几小时更新维护。' },
+            { name: '阿强', skill: 'PPT设计', platform: '淘宝', income: 7000, hoursPerWeek: 15, timeToFirstIncome: '1周', story: '大学时自学PPT设计，现在在淘宝开店铺做PPT定制。旺季月入过万。' },
+            { name: '小陈', skill: '文案写作', platform: '稿稿', income: 5000, hoursPerWeek: 10, timeToFirstIncome: '3天', story: '中文系在校生，在稿稿平台接商业文案。一篇软文500-1000元，每月写10篇左右。' },
+            { name: '赵姐', skill: '社媒代运营', platform: '小红书', income: 8000, hoursPerWeek: 15, timeToFirstIncome: '1周', story: '帮3个美妆品牌运营小红书账号，每月基础服务费+效果奖金。每天花2-3小时。' },
+            { name: '小周', skill: 'Excel处理', platform: '猪八戒', income: 3000, hoursPerWeek: 8, timeToFirstIncome: '2小时', story: '退休会计，在猪八戒接Excel报表和数据分析单。简单易上手，适合零基础。' },
+            { name: '乐乐', skill: '摄影/图库', platform: '视觉中国', income: 2000, hoursPerWeek: 6, timeToFirstIncome: '1个月', story: '摄影爱好者，周末出去拍照上传图库。虽然单张收入不高，但胜在持续积累，现在有3000+张在售。' },
+            { name: '小杨', skill: '课程制作', platform: '网易云课堂', income: 25000, hoursPerWeek: 20, timeToFirstIncome: '3个月', story: '程序员出身，做了套Python入门课。前期投入3个月打磨课程内容，现在每月被动收入2万+。' },
+            { name: '薇薇', skill: '手工/手作', platform: '闲鱼', income: 3500, hoursPerWeek: 10, timeToFirstIncome: '2周', story: '全职妈妈，利用带娃间隙做手工饰品在闲鱼卖。材料成本低，利润率70%以上。' },
+            { name: '阿斌', skill: '音乐制作', platform: '网易云音乐', income: 6000, hoursPerWeek: 12, timeToFirstIncome: '2个月', story: '音乐专业学生，为短视频创作者做配乐。一首配乐500-2000元，每月做5-8首。' },
+            { name: '小刘', skill: '数据录入', platform: '阿里众包', income: 1500, hoursPerWeek: 10, timeToFirstIncome: '几分钟', story: '大学生，利用课间做数据标注。虽然单价低，但胜在随时可以做，零门槛。' },
+            { name: '王姐', skill: '直播/语音直播', platform: '抖音', income: 10000, hoursPerWeek: 20, timeToFirstIncome: '2天', story: '晚上开语音直播聊天，主要靠礼物打赏。固定粉丝群后每月稳定过万。' },
+            { name: '大伟', skill: '产品测评', platform: '知乎', income: 3000, hoursPerWeek: 8, timeToFirstIncome: '2周', story: '数码爱好者，在知乎写产品评测。好物推荐带货月入3000+，偶尔接品牌合作。' },
+            { name: '小晴', skill: '知识问答', platform: '悟空问答', income: 1000, hoursPerWeek: 5, timeToFirstIncome: '1天', story: '利用午休时间回答问题。每题5-20元，虽然赚得不多但几乎没有门槛。' }
+        ];
+
+        // ============== 状态 ==============
+        let selectedMethods = JSON.parse(localStorage.getItem('fragSelectedMethods_v2') || '["article","video","consult"]');
+        let skillLevel = 1;
+        let calcHistory = JSON.parse(localStorage.getItem('fragCalcHistory_v2') || '[]');
+        let timeChartInstance = null;
+        let compareChartInstance = null;
+        let incomeTrendChartInstance = null;
+
+        function save() { localStorage.setItem('fragSelectedMethods_v2', JSON.stringify(selectedMethods)); localStorage.setItem('fragCalcHistory_v2', JSON.stringify(calcHistory)); }
+
+        // ============== Tab ==============
+        function showTab(name) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.className = 'tab-btn px-3 py-1 rounded hover:bg-teal-500');
+            document.getElementById('tab-' + name).classList.remove('hidden');
+            const idx = ['calculator','compare','learning','tracker','goal','history','cases'].indexOf(name);
+            document.querySelectorAll('.tab-btn')[idx].className = 'tab-btn px-3 py-1 rounded bg-teal-500';
+            if (name === 'compare') renderCompare();
+            if (name === 'learning') renderSkillSelect();
+            if (name === 'tracker') renderTracker();
+            if (name === 'history') { renderHistory(); renderIncomeTrend(); }
+            if (name === 'cases') renderCases();
+        }
+
+        // ============== 技能等级 ==============
+        function setSkill(level) {
+            skillLevel = level;
+            document.querySelectorAll('.skill-btn').forEach((b, i) => {
+                b.className = `skill-btn px-4 py-2 rounded text-sm ${i + 1 === level ? 'bg-green-500 text-white' : 'bg-gray-200 hover:bg-gray-300'}`;
+            });
+            calculate();
+        }
+
+        function updateMinutes() {
+            const val = document.getElementById('minutes').value;
+            document.getElementById('minutesVal').textContent = val + '分钟';
+            document.getElementById('dailyMinutes').textContent = val + '分钟';
+            calculate();
+        }
+
+        // ============== 技能选择 ==============
+        function toggleMethod(id) {
+            if (selectedMethods.includes(id)) { if (selectedMethods.length > 1) selectedMethods = selectedMethods.filter(m => m !== id); }
+            else { selectedMethods.push(id); }
+            save(); calculate(); renderMethods(); renderCombo();
+        }
+
+        function renderMethods() {
+            const grid = document.getElementById('methodGrid');
+            grid.innerHTML = ALL_SKILLS.map(m => {
+                const sel = selectedMethods.includes(m.id);
+                return `<div onclick="toggleMethod('${m.id}')" class="cursor-pointer p-2 rounded-lg border transition text-center ${sel ? 'border-teal-500 bg-teal-50' : 'border-gray-200 hover:border-teal-300'}">
+                    <i class="fa ${m.icon} text-lg ${sel ? 'text-teal-600' : 'text-gray-400'}"></i>
+                    <div class="font-medium text-xs mt-1">${m.name}</div>
+                    <div class="text-[9px] text-gray-400">¥${m.rates.low}-${m.rates.high}/h</div>
+                </div>`;
+            }).join('');
+        }
+
+        // ============== 计算 ==============
+        function calculate() {
+            const minutes = parseInt(document.getElementById('minutes').value);
+            const workDays = parseInt(document.getElementById('workDays').value) || 25;
+            const hours = minutes / 60;
+            const levelMult = [1, 1.3, 1.7, 2.2][skillLevel - 1] || 1;
+
+            const results = ALL_SKILLS.filter(m => selectedMethods.includes(m.id)).map(m => {
+                const midRate = m.rates.mid * levelMult;
+                return { ...m, effectiveRate: midRate, dailyIncome: hours * midRate * m.efficiency, monthlyIncome: hours * midRate * m.efficiency * workDays, yearlyIncome: hours * midRate * m.efficiency * workDays * 12 };
+            });
+
+            const avgMonthly = results.reduce((s, r) => s + r.monthlyIncome, 0) / (results.length || 1);
+            const avgYearly = avgMonthly * 12;
+
+            document.getElementById('monthlyIncome').textContent = '¥' + Math.round(avgMonthly).toLocaleString();
+            document.getElementById('yearlyIncome').textContent = '¥' + Math.round(avgYearly).toLocaleString();
+
+            // 时间投入vs收益图表
+            renderTimeChart(minutes, workDays, levelMult);
+
+            // 技能组合推荐
+            renderCombo();
+
+            // 保存历史（避免重复）
+            const last = calcHistory[0];
+            if (!last || last.minutes !== minutes || last.level !== skillLevel || JSON.stringify(last.skills) !== JSON.stringify(selectedMethods)) {
+                calcHistory.unshift({ date: new Date().toISOString(), minutes, days: workDays, income: Math.round(avgMonthly), skills: [...selectedMethods], level: skillLevel });
+                if (calcHistory.length > 50) calcHistory = calcHistory.slice(0, 50);
+                save();
+            }
+        }
+
+        // ============== 时间vs收益曲线 ==============
+        function renderTimeChart(maxMinutes, workDays, levelMult) {
+            if (timeChartInstance) timeChartInstance.destroy();
+            const points = [15, 30, 45, 60, 90, 120, 180, 240, 300, 360].filter(m => m <= maxMinutes + 60);
+            const ctx = document.getElementById('timeChart').getContext('2d');
+
+            const datasets = ALL_SKILLS.filter(m => selectedMethods.includes(m.id)).slice(0, 4).map((m, i) => ({
+                label: m.name,
+                data: points.map(p => Math.round((p / 60) * m.rates.mid * levelMult * m.efficiency * workDays)),
+                borderColor: ['#0d9488', '#f59e0b', '#3b82f6', '#ef4444'][i],
+                backgroundColor: ['rgba(13,148,136,0.1)', 'rgba(245,158,11,0.1)', 'rgba(59,130,246,0.1)', 'rgba(239,68,68,0.1)'][i],
+                fill: true, tension: 0.3, pointRadius: 3
+            }));
+
+            if (datasets.length === 0) {
+                datasets.push({ label: '暂无数据', data: [0], borderColor: '#ccc' });
+            }
+
+            timeChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: { labels: points.map(p => p + '分钟'), datasets },
+                options: { responsive: true, plugins: { legend: { position: 'bottom', labels: { boxWidth: 12 } } }, scales: { y: { beginAtZero: true, ticks: { callback: v => '¥' + v } } } }
+            });
+        }
+
+        // ============== 技能组合推荐 ==============
+        function renderCombo() {
+            const container = document.getElementById('comboResult');
+            const sel = ALL_SKILLS.filter(m => selectedMethods.includes(m.id));
+            if (sel.length === 0) { container.innerHTML = '<div class="text-gray-400">请选择至少一个技能</div>'; return; }
+
+            // 按收益排序
+            const levelMult = [1, 1.3, 1.7, 2.2][skillLevel - 1] || 1;
+            const sorted = sel.map(m => ({ ...m, monthly: Math.round((60/60) * m.rates.mid * levelMult * m.efficiency * 25) })).sort((a, b) => b.monthly - a.monthly);
+
+            const high = sorted[0];
+            const low = sorted[sorted.length - 1];
+            const mid = sorted[Math.floor(sorted.length / 2)];
+
+            let combo = '';
+            if (sel.length >= 3) {
+                combo = `<div class="p-4 bg-teal-50 rounded-lg"><strong>推荐组合：</strong> "${high.name} + ${mid.name} + ${low.name}"<br>
+                <span class="text-xs text-gray-500">主攻高收益的${high.name}（¥${high.monthly}/月），辅以${mid.name}作为稳定收入，${low.name}作为基础保障。</span></div>`;
+            } else if (sel.length === 2) {
+                combo = `<div class="p-4 bg-teal-50 rounded-lg"><strong>推荐组合：</strong> "${sorted[0].name} + ${sorted[1].name}"<br>
+                <span class="text-xs text-gray-500">建议以${sorted[0].name}为主（¥${sorted[0].monthly}/月），${sorted[1].name}为辅。</span></div>`;
+            } else {
+                combo = `<div class="p-4 bg-teal-50 rounded-lg"><strong>当前技能：</strong> ${high.name}<br>
+                <span class="text-xs text-gray-500">建议再选择1-2个互补技能组合，提高收入稳定性。</span></div>`;
+            }
+
+            container.innerHTML = `
+                ${combo}
+                <div class="mt-3 grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+                    ${sorted.slice(0, 4).map((s, i) => `<div class="p-2 bg-gray-50 rounded text-center">
+                        <div class="font-medium">${i === 0 ? '🏆 ' : ''}${s.name}</div>
+                        <div class="text-teal-600 font-bold">¥${s.monthly}/月</div>
+                    </div>`).join('')}
+                </div>
+                <div class="mt-3 p-3 bg-yellow-50 rounded text-xs">
+                    <i class="fa fa-lightbulb-o text-yellow-600"></i> <strong>建议：</strong>
+                    ${high.diff === '低' ? '所有技能入门门槛较低，可以立即开始。' :
+                      sel.some(s => s.diff === '低') ? '建议先从低门槛技能开始，逐步过渡到高收益技能。' :
+                      '选择门槛较低的技能搭配，降低起步难度。'}
+                </div>
+            `;
+        }
+
+        // ============== 收益对比 ==============
+        function renderCompare() {
+            const minutes = parseInt(document.getElementById('minutes').value);
+            const workDays = parseInt(document.getElementById('workDays').value) || 25;
+            const hours = minutes / 60;
+            const levelMult = [1, 1.3, 1.7, 2.2][skillLevel - 1] || 1;
+
+            const results = ALL_SKILLS.filter(m => selectedMethods.includes(m.id)).map(m => ({
+                ...m, monthlyIncome: Math.round(hours * m.rates.mid * levelMult * m.efficiency * workDays)
+            })).sort((a, b) => b.monthlyIncome - a.monthlyIncome);
+
+            // Chart.js柱状图
+            if (compareChartInstance) compareChartInstance.destroy();
+            const ctx = document.getElementById('compareChart').getContext('2d');
+            const colors = results.map((_, i) => `hsl(${i * 30 + 160}, 60%, 50%)`);
+            compareChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: { labels: results.map(r => r.name), datasets: [{ label: '月收入 (¥)', data: results.map(r => r.monthlyIncome), backgroundColor: colors, borderRadius: 4 }] },
+                options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { callback: v => '¥' + v } } } }
+            });
+
+            // 列表
+            const list = document.getElementById('compareList');
+            list.innerHTML = results.map((r, i) => `<div class="flex items-center gap-3 p-2 bg-gray-50 rounded text-sm">
+                <span class="w-6 h-6 rounded-full bg-teal-500 text-white flex items-center justify-center text-xs font-bold">${i + 1}</span>
+                <i class="fa ${r.icon} text-teal-600 w-4"></i>
+                <span class="flex-1 font-medium">${r.name}</span>
+                <span class="text-gray-400 text-xs">¥${r.rates.low}~${r.rates.high}/h</span>
+                <span class="font-bold text-teal-600">月¥${r.monthlyIncome.toLocaleString()}</span>
+            </div>`).join('');
+        }
+
+        // ============== 目标设定 ==============
+        function calculateGoal() {
+            const goal = parseFloat(document.getElementById('goalAmount').value);
+            if (!goal || goal <= 0) { alert('请输入有效的目标金额'); return; }
+            const workDays = parseInt(document.getElementById('workDays').value) || 25;
+            const levelMult = [1, 1.3, 1.7, 2.2][skillLevel - 1] || 1;
+
+            const details = ALL_SKILLS.filter(m => selectedMethods.includes(m.id)).map(m => {
+                const dailyRate = m.rates.mid * levelMult * m.efficiency;
+                const dailyMinutes = Math.ceil((goal / workDays / dailyRate) * 60);
+                return { ...m, dailyMinutes, dailyRate, feasible: dailyMinutes <= 480 };
+            }).sort((a, b) => a.dailyMinutes - b.dailyMinutes);
+
+            document.getElementById('goalResult').innerHTML = `<div class="p-4 bg-teal-50 rounded-lg mb-3">
+                <div class="text-sm font-medium">月目标 ¥${goal.toLocaleString()}</div>
+                <div class="text-xs text-gray-500">每月工作 ${workDays} 天</div>
+            </div>
+            <div class="space-y-2">${details.slice(0, 5).map(d =>
+                `<div class="flex items-center justify-between p-2 ${d.feasible ? 'bg-green-50' : 'bg-red-50'} rounded text-sm">
+                    <span><i class="fa ${d.icon} mr-1"></i>${d.name}</span>
+                    <span class="${d.feasible ? 'text-green-600' : 'text-red-600'} font-medium">${d.feasible ? '' : '⚠️ '}每天需 ${d.dailyMinutes} 分钟</span>
+                </div>`
+            ).join('')}</div>`;
+
+            // 推荐组合策略
+            document.getElementById('strategyTips').innerHTML = details.slice(0, 3).map((d, i) =>
+                `<div class="p-3 bg-gray-50 rounded text-sm">
+                    <strong>方案${i + 1}：专注${d.name}</strong><br>
+                    <span class="text-xs text-gray-500">每天投入${d.dailyMinutes}分钟，时薪¥${Math.round(d.dailyRate)}，${d.feasible ? '可行' : '所需时间较长，建议拆分或选择其他技能组合'}</span>
+                </div>`
+            ).join('');
+        }
+
+        // ============== 历史 ==============
+        function renderHistory() {
+            const list = document.getElementById('historyList');
+            list.innerHTML = calcHistory.length === 0 ? '<div class="text-gray-400 text-center py-8">暂无计算历史</div>' :
+                calcHistory.slice(0, 30).map(h => `<div class="flex items-center justify-between p-2 bg-gray-50 rounded text-sm">
+                    <div><span class="text-gray-500">${new Date(h.date).toLocaleDateString('zh-CN')}</span>
+                    <span class="ml-2">${h.minutes}分钟/天 × ${h.days}天</span>
+                    <span class="text-xs text-gray-400 ml-2">等级${h.level}</span></div>
+                    <span class="font-bold text-teal-600">¥${h.income.toLocaleString()}</span>
+                </div>`).join('');
+        }
+
+        function renderIncomeTrend() {
+            if (incomeTrendChartInstance) incomeTrendChartInstance.destroy();
+            if (calcHistory.length < 2) return;
+            const recent = calcHistory.slice(0, 5).reverse();
+            const ctx = document.getElementById('incomeTrendChart').getContext('2d');
+            incomeTrendChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: recent.map(h => new Date(h.date).toLocaleDateString('zh-CN')),
+                    datasets: [{
+                        label: '月收益 (¥)',
+                        data: recent.map(h => h.income),
+                        borderColor: '#0d9488',
+                        backgroundColor: 'rgba(13,148,136,0.1)',
+                        fill: true, tension: 0.3, pointRadius: 5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true, ticks: { callback: v => '¥' + v } } }
+                }
+            });
+        }
+
+        function clearHistory() {
+            if (confirm('清空计算历史？')) { calcHistory = []; save(); renderHistory(); }
+        }
+
+        // ============== 成功案例 ==============
+        function renderCases() {
+            randomCases();
+            const list = document.getElementById('caseFullList');
+            list.innerHTML = SUCCESS_CASES.map(c =>
+                `<div class="p-2 bg-gray-50 rounded text-xs hover:bg-teal-50 cursor-pointer" onclick="showCaseDetail('${c.name}')">
+                    <strong>${c.name}</strong> - ${c.skill} - ¥${c.income}/月
+                </div>`
+            ).join('');
+        }
+
+        let currentCases = [];
+        function randomCases() {
+            const shuffled = [...SUCCESS_CASES].sort(() => Math.random() - 0.5);
+            currentCases = shuffled.slice(0, 3);
+            const grid = document.getElementById('caseGrid');
+            grid.innerHTML = currentCases.map(c => `
+                <div class="bg-white border rounded-xl p-4 hover:shadow-md transition">
+                    <div class="flex items-center gap-2 mb-2">
+                        <div class="w-10 h-10 rounded-full bg-teal-100 flex items-center justify-center text-teal-600 font-bold">${c.name[0]}</div>
+                        <div>
+                            <div class="font-bold">${c.name}</div>
+                            <div class="text-xs text-gray-500">${c.skill} | ${c.platform}</div>
+                        </div>
+                    </div>
+                    <div class="text-2xl font-bold text-teal-600 mb-2">¥${c.income.toLocaleString()}<span class="text-sm text-gray-400 font-normal">/月</span></div>
+                    <div class="grid grid-cols-2 gap-2 text-xs mb-2">
+                        <div class="bg-gray-50 rounded p-1 text-center"><span class="text-gray-400">每周投入</span><br><strong>${c.hoursPerWeek}h</strong></div>
+                        <div class="bg-gray-50 rounded p-1 text-center"><span class="text-gray-400">首单时间</span><br><strong>${c.timeToFirstIncome}</strong></div>
+                    </div>
+                    <div class="text-xs text-gray-600 leading-relaxed">"${c.story}"</div>
+                </div>
+            `).join('');
+        }
+
+        function showCaseDetail(name) {
+            const c = SUCCESS_CASES.find(x => x.name === name);
+            if (!c) return;
+            alert(`${c.name} - ${c.skill}\n平台：${c.platform}\n月收入：¥${c.income}\n每周投入：${c.hoursPerWeek}h\n首单时间：${c.timeToFirstIncome}\n\n故事：${c.story}`);
+        }
+
+        // ============== 初始化 ==============
+        renderMethods();
+        updateMinutes();
+
+        // ============== 学习路径系统 ==============
+        const LEARNING_PATHS = {
+          'article': { levels: [
+            { name: '新手', weeks: '2-4', skills: ['学会基础文章结构','掌握标题技巧','熟悉平台投稿规则'], resources: ['知乎写作教程','公众号排版指南'] },
+            { name: '进阶', weeks: '1-2月', skills: ['学习SEO关键词','掌握开头结尾技巧','学会数据复盘'], resources: ['《爆款文案》书籍','新榜数据分析'] },
+            { name: '熟练', weeks: '2-3月', skills: ['稳定产出爆款','建立内容SOP','接单能力'], resources: ['稿稿平台','公众号代运营资源'] },
+            { name: '专家', weeks: '3-6月', skills: ['打造个人品牌','知识付费产品','团队化运营'], resources: ['知识星球','小鹅通'] }
+          ]},
+          'video': { levels: [
+            { name: '新手', weeks: '2-4', skills: ['学会剪辑软件','掌握基础拍摄','熟悉平台规则'], resources: ['剪映教程','抖音创作者学院'] },
+            { name: '进阶', weeks: '1-2月', skills: ['学习脚本创作','掌握镜头语言','学会数据分析'], resources: ['《短视频运营》书籍','飞瓜数据'] },
+            { name: '熟练', weeks: '2-3月', skills: ['稳定产出爆款','开通橱窗','接广告单'], resources: ['抖音创作者服务中心','星图平台'] },
+            { name: '专家', weeks: '3-6月', skills: ['直播带货能力','打造IP','团队化'], resources: ['抖音直播学院','MCN对接'] }
+          ]},
+          'consult': { levels: [
+            { name: '新手', weeks: '1-2', skills: ['梳理专业知识','建立咨询框架','熟悉平台'], resources: ['在行入驻指南','知乎付费咨询'] },
+            { name: '进阶', weeks: '1月', skills: ['优化咨询流程','积累案例','提升沟通'], resources: ['《咨询技巧》书籍','咨询模板'] },
+            { name: '熟练', weeks: '2-3月', skills: ['稳定接单','建立口碑','私域转化'], resources: ['知识星球','企业微信'] },
+            { name: '专家', weeks: '3-6月', skills: ['课程开发','团队咨询','品牌打造'], resources: ['小鹅通','知乎Live'] }
+          ]},
+          'code': { levels: [
+            { name: '新手', weeks: '4-8', skills: ['掌握一门语言基础','学会Git','熟悉接单平台'], resources: ['免费编程教程','程序员客栈入驻'] },
+            { name: '进阶', weeks: '1-2月', skills: ['项目实战','学会报价','建立作品集'], resources: ['GitHub项目','猪八戒平台'] },
+            { name: '熟练', weeks: '2-3月', skills: ['稳定接单','多种技术栈','项目管理'], resources: ['Upwork','开源贡献'] },
+            { name: '专家', weeks: '3-6月', skills: ['高客单价项目','技术团队','产品化'], resources: ['技术博客','独立开发者社区'] }
+          ]},
+          'design': { levels: [
+            { name: '新手', weeks: '2-4', skills: ['学会Canva/Figma','掌握基础设计原则','熟悉平台'], resources: ['Canva教程','站酷入驻'] },
+            { name: '进阶', weeks: '1-2月', skills: ['提升审美','学会商业设计','作品集建立'], resources: ['Dribbble','Behance'] },
+            { name: '熟练', weeks: '2-3月', skills: ['稳定接单','多种风格','客户沟通'], resources: ['猪八戒','淘宝设计服务'] },
+            { name: '专家', weeks: '3-6月', skills: ['品牌VI设计','设计团队','自有产品'], resources: ['设计工作室','模板销售平台'] }
+          ]},
+          'translate': { levels: [
+            { name: '新手', weeks: '1-2', skills: ['语言能力达标','学会CAT工具','熟悉平台'], resources: ['Proz入驻','Gengo申请'] },
+            { name: '进阶', weeks: '1月', skills: ['提升翻译速度','专业领域深耕','术语管理'], resources: ['翻译论坛','术语库'] },
+            { name: '熟练', weeks: '2-3月', skills: ['稳定接单','多领域','客户维护'], resources: ['有道人工翻译','字幕组'] },
+            { name: '专家', weeks: '3-6月', skills: ['项目管理','团队协作','翻译产品'], resources: ['翻译公司','在线课程'] }
+          ]},
+          'ppt': { levels: [
+            { name: '新手', weeks: '1-2', skills: ['掌握PPT基础','学会模板使用','熟悉平台'], resources: ['PPT教程','淘宝入驻'] },
+            { name: '进阶', weeks: '1月', skills: ['设计能力提升','商业PPT技巧','作品展示'], resources: ['PPT模板网站','猪八戒'] },
+            { name: '熟练', weeks: '2-3月', skills: ['稳定接单','多种风格','效率提升'], resources: ['闲鱼','企业客户'] },
+            { name: '专家', weeks: '3-6月', skills: ['高客单设计','团队协作','模板产品'], resources: ['模板销售平台','设计工作室'] }
+          ]},
+          'tutor': { levels: [
+            { name: '新手', weeks: '2-4', skills: ['梳理教学内容','学会在线授课','熟悉平台'], resources: ['腾讯课堂入驻','猿辅导申请'] },
+            { name: '进阶', weeks: '1-2月', skills: ['优化教学方法','积累学生','提升互动'], resources: ['教学技巧书籍','课程模板'] },
+            { name: '熟练', weeks: '2-3月', skills: ['稳定学生','多科目','口碑建立'], resources: ['私域招生','社群运营'] },
+            { name: '专家', weeks: '3-6月', skills: ['课程产品化','教学团队','品牌打造'], resources: ['小鹅通','知识付费平台'] }
+          ]},
+          'course': { levels: [
+            { name: '新手', weeks: '4-8', skills: ['确定课程方向','学会录制','熟悉平台'], resources: ['网易云课堂入驻','腾讯课堂'] },
+            { name: '进阶', weeks: '1-2月', skills: ['课程大纲设计','内容打磨','初步上架'], resources: ['课程制作教程','录屏软件'] },
+            { name: '熟练', weeks: '2-3月', skills: ['课程推广','学员互动','持续迭代'], resources: ['社群运营','学员反馈'] },
+            { name: '专家', weeks: '3-6月', skills: ['多课程矩阵','学员规模','品牌化'], resources: ['知识付费MCN','线下培训'] }
+          ]}
+        };
+
+        // 为没有详细路径的技能提供通用模板
+        const GENERIC_PATH = { levels: [
+          { name: '新手', weeks: '2-4', skills: ['了解平台规则','学习基础技能','建立账号'], resources: ['平台官方教程','免费在线课程'] },
+          { name: '进阶', weeks: '1-2月', skills: ['提升核心能力','积累作品','建立口碑'], resources: ['专业书籍','行业论坛'] },
+          { name: '熟练', weeks: '2-3月', skills: ['稳定接单/变现','优化流程','客户维护'], resources: ['接单平台','私域运营'] },
+          { name: '专家', weeks: '3-6月', skills: ['打造个人品牌','团队协作','产品化'], resources: ['知识付费','行业社群'] }
+        ]};
+
+        function renderSkillSelect() {
+          const sel = document.getElementById('learningSkillSelect');
+          sel.innerHTML = '<option value="">-- 请选择技能 --</option>' + ALL_SKILLS.map(s => `<option value="${s.id}">${s.name}（¥${s.rates.low}-${s.rates.high}/h）</option>`).join('');
+        }
+
+        function showLearningPath() {
+          const skillId = document.getElementById('learningSkillSelect').value;
+          if (!skillId) { document.getElementById('learningPathResult').innerHTML = '<div class="text-center text-gray-400 py-8">选择技能后显示学习路径</div>'; return; }
+          const skill = ALL_SKILLS.find(s => s.id === skillId);
+          const path = LEARNING_PATHS[skillId] || GENERIC_PATH;
+          const resultDiv = document.getElementById('learningPathResult');
+          resultDiv.innerHTML = `
+            <div class="mb-4 p-4 bg-teal-50 rounded-lg">
+              <div class="font-bold text-lg">${skill.name} 学习路径</div>
+              <div class="text-sm text-gray-600">时薪区间：¥${skill.rates.low}-${skill.rates.high}/小时 | 难度：${skill.diff}</div>
+            </div>
+            <div class="space-y-4">
+              ${path.levels.map((l, i) => `
+                <div class="relative pl-8 pb-4 ${i < path.levels.length - 1 ? 'border-l-2 border-teal-200' : ''}">
+                  <div class="absolute left-0 top-0 w-4 h-4 rounded-full ${i === 0 ? 'bg-green-500' : i === path.levels.length - 1 ? 'bg-purple-500' : 'bg-teal-500'}"></div>
+                  <div class="bg-white rounded-lg shadow p-4 ${i === 0 ? 'border-2 border-green-500' : ''}">
+                    <div class="flex justify-between items-start mb-2">
+                      <div class="font-bold ${i === 0 ? 'text-green-600' : i === path.levels.length - 1 ? 'text-purple-600' : 'text-teal-600'}">${l.name}</div>
+                      <div class="text-xs text-gray-500">预计 ${l.weeks}</div>
+                    </div>
+                    <div class="mb-2"><strong class="text-xs text-gray-500">核心技能：</strong>
+                      <ul class="list-disc list-inside text-sm text-gray-600 mt-1">${l.skills.map(s => `<li>${s}</li>`).join('')}</ul>
+                    </div>
+                    <div><strong class="text-xs text-gray-500">推荐资源：</strong>
+                      <div class="flex flex-wrap gap-1 mt-1">${l.resources.map(r => `<span class="px-2 py-0.5 bg-blue-50 text-blue-600 rounded text-xs">${r}</span>`).join('')}</div>
+                    </div>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+            <div class="mt-6 p-4 bg-yellow-50 rounded-lg">
+              <h4 class="font-bold mb-2"><i class="fa fa-lightbulb-o text-yellow-600"></i> 学习建议</h4>
+              <p class="text-sm text-gray-600">建议每天投入 ${document.getElementById('minutes').value} 分钟碎片时间，预计 ${skill.diff === '低' ? '1-2个月' : skill.diff === '中' ? '2-3个月' : '3-6个月'} 可达到熟练级别开始稳定变现。</p>
+            </div>
+          `;
+        }
+
+        // ============== 收益追踪系统 ==============
+        let trackerRecords = JSON.parse(localStorage.getItem('fragTrackerRecords') || '[]');
+        let trackerChartInstance = null;
+
+        function saveTracker() { localStorage.setItem('fragTrackerRecords', JSON.stringify(trackerRecords)); }
+
+        function addTrackerRecord() {
+          const date = document.getElementById('trackerDate').value;
+          const skillId = document.getElementById('trackerSkill').value;
+          const actualIncome = parseFloat(document.getElementById('trackerActualIncome').value) || 0;
+          const timeSpent = parseFloat(document.getElementById('trackerTime').value) || 0;
+          if (!date || actualIncome <= 0) { alert('请填写完整信息'); return; }
+          const skill = ALL_SKILLS.find(s => s.id === skillId);
+          const hours = timeSpent / 60;
+          const estIncome = Math.round(skill ? skill.rates.mid * hours : 0);
+          trackerRecords.unshift({
+            id: Date.now(), date, skillId, skillName: skill ? skill.name : '未知',
+            actualIncome, timeSpent, estIncome, createdAt: new Date().toISOString()
+          });
+          saveTracker();
+          renderTracker();
+          showToast('已记录收益');
+        }
+
+        function renderTracker() {
+          const list = document.getElementById('trackerList');
+          if (trackerRecords.length === 0) {
+            list.innerHTML = '<div class="text-center text-gray-400 py-8">暂无记录</div>';
+            document.getElementById('trackerSummary').innerHTML = '';
+            return;
+          }
+
+          // 按技能汇总
+          const summary = {};
+          trackerRecords.forEach(r => {
+            if (!summary[r.skillId]) summary[r.skillId] = { skillName: r.skillName, totalActual: 0, totalEst: 0, totalTime: 0, count: 0 };
+            summary[r.skillId].totalActual += r.actualIncome;
+            summary[r.skillId].totalEst += r.estIncome;
+            summary[r.skillId].totalTime += r.timeSpent;
+            summary[r.skillId].count++;
+          });
+
+          const summaryDiv = document.getElementById('trackerSummary');
+          summaryDiv.innerHTML = Object.values(summary).map(s => `
+            <div class="p-3 bg-gray-50 rounded">
+              <div class="font-medium">${s.skillName}</div>
+              <div class="grid grid-cols-3 gap-2 text-xs mt-1">
+                <div class="text-center"><span class="text-gray-500">实际收入</span><br><strong class="text-teal-600">¥${s.totalActual}</strong></div>
+                <div class="text-center"><span class="text-gray-500">预估收入</span><br><strong class="text-gray-400">¥${s.totalEst}</strong></div>
+                <div class="text-center"><span class="text-gray-500">偏差</span><br><strong class="${s.totalActual >= s.totalEst ? 'text-green-600' : 'text-red-600'}">${Math.round((s.totalActual - s.totalEst) / s.totalEst * 100)}%</strong></div>
+              </div>
+            </div>
+          `).join('');
+
+          // 图表
+          if (trackerChartInstance) trackerChartInstance.destroy();
+          const recent = trackerRecords.slice(0, 7).reverse();
+          const ctx = document.getElementById('trackerChart').getContext('2d');
+          trackerChartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+              labels: recent.map(r => r.date.slice(5)),
+              datasets: [
+                { label: '实际收入', data: recent.map(r => r.actualIncome), backgroundColor: '#0d9488' },
+                { label: '预估收入', data: recent.map(r => r.estIncome), backgroundColor: '#cbd5e1' }
+              ]
+            },
+            options: { responsive: true, plugins: { legend: { position: 'bottom' } }, scales: { y: { beginAtZero: true } } }
+          });
+
+          // 列表
+          list.innerHTML = trackerRecords.slice(0, 30).map(r => `
+            <div class="flex items-center justify-between p-2 bg-gray-50 rounded text-sm">
+              <div>
+                <span class="text-gray-500">${r.date}</span>
+                <span class="ml-2">${r.skillName}</span>
+                <span class="text-xs text-gray-400 ml-1">${r.timeSpent}分钟</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="text-teal-600 font-bold">¥${r.actualIncome}</span>
+                <span class="text-xs text-gray-400">预估¥${r.estIncome}</span>
+                <button onclick="deleteTrackerRecord(${r.id})" class="text-red-400 hover:text-red-600"><i class="fa fa-trash"></i></button>
+              </div>
+            </div>
+          `).join('');
+        }
+
+        function deleteTrackerRecord(id) {
+          trackerRecords = trackerRecords.filter(r => r.id !== id);
+          saveTracker();
+          renderTracker();
+        }
+
+        function clearTrackerRecords() {
+          if (!confirm('确定清空所有收益记录？')) return;
+          trackerRecords = [];
+          saveTracker();
+          renderTracker();
+        }
+
+        function showToast(msg) {
+          const el = document.getElementById('toast') || (() => {
+            const t = document.createElement('div');
+            t.id = 'toast';
+            t.className = 'fixed bottom-6 right-6 bg-gray-800 text-white px-5 py-3 rounded-xl shadow-2xl text-sm font-medium z-50 transition-all duration-300';
+            document.body.appendChild(t); return t;
+          })();
+          el.textContent = msg; el.classList.remove('hidden', 'opacity-0'); el.classList.add('opacity-100');
+          clearTimeout(el._timer);
+          el._timer = setTimeout(() => { el.classList.add('opacity-0'); setTimeout(() => el.classList.add('hidden'), 300); }, 2500);
+        }
+    </script>
+</body>
+</html>
